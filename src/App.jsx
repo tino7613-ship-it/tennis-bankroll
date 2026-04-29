@@ -45,6 +45,9 @@ export default function App() {
   function setResult(id, result) {
     setBets(prev => prev.map(b => b.id === id && b.result === "pending" ? { ...b, result } : b));
   }
+  function resetResult(id) {
+    setBets(prev => prev.map(b => b.id === id ? { ...b, result: "pending" } : b));
+  }
 
   const brA = getBankroll(bets, "A");
   const brB = getBankroll(bets, "B");
@@ -158,12 +161,15 @@ export default function App() {
                       color: b.result === "pending" ? "#333" : p >= 0 ? "#00ff88" : "#ff4466" }}>
                       {b.result !== "pending" ? `${p >= 0 ? "+" : ""}${p.toFixed(2)}€` : "—"}
                     </div>
-                    {b.result === "pending" && (
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button onClick={() => setResult(b.id, "win")} style={{ padding: "4px 12px", background: "#00ff8822", border: "1px solid #00ff88", borderRadius: "6px", color: "#00ff88", cursor: "pointer", fontSize: "12px", fontFamily: "'Courier New', monospace" }}>✓</button>
-                        <button onClick={() => setResult(b.id, "loss")} style={{ padding: "4px 12px", background: "#ff446622", border: "1px solid #ff4466", borderRadius: "6px", color: "#ff4466", cursor: "pointer", fontSize: "12px", fontFamily: "'Courier New', monospace" }}>✗</button>
-                      </div>
-                    )}
+                    {b.result === "pending" ? (
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button onClick={() => setResult(b.id, "win")} style={{ padding: "4px 12px", background: "#00ff8822", border: "1px solid #00ff88", borderRadius: "6px", color: "#00ff88", cursor: "pointer", fontSize: "12px", fontFamily: "'Courier New', monospace" }}>✓</button>
+                <button onClick={() => setResult(b.id, "loss")} style={{ padding: "4px 12px", background: "#ff446622", border: "1px solid #ff4466", borderRadius: "6px", color: "#ff4466", cursor: "pointer", fontSize: "12px", fontFamily: "'Courier New', monospace" }}>✗</button>
+              </div>
+            ) : (
+              <button onClick={() => resetResult(b.id)} style={{ padding: "4px 12px", background: "#33333322", border: "1px solid #555", borderRadius: "6px", color: "#555", cursor: "pointer", fontSize: "12px", fontFamily: "'Courier New', monospace" }}>↩</button>
+            )}
+                        
                   </div>
                 );
               })}
