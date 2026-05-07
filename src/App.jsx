@@ -27,7 +27,7 @@ export default function App() {
   const [startingBankroll, setStartingBankroll] = useState(100);
   const [showBankrollEdit, setShowBankrollEdit] = useState(false);
   const [newBankroll, setNewBankroll] = useState("");
-  const [form, setForm] = useState({ match: "", pari: "", cote: "", mise: "", jour: "", tournoi: "Rome 2026" });
+  const [form, setForm] = useState({ match: "", pari: "", cote: "", mise: "", jour: "", tournoi: "Rome 2026", conseil_pct: "" });
   const [showForm, setShowForm] = useState(false);
   const [editingMise, setEditingMise] = useState(null);
   const [newMise, setNewMise] = useState("");
@@ -74,7 +74,7 @@ export default function App() {
     });
     const newBet = await res.json();
     setBets(prev => [{ ...newBet, mise: parseFloat(newBet.mise), cote: parseFloat(newBet.cote) }, ...prev]);
-    setForm({ match: "", pari: "", cote: "", mise: "", jour: "", tournoi: "Rome 2026" });
+    setForm({ match: "", pari: "", cote: "", mise: "", jour: "", tournoi: "Rome 2026", conseil_pct: "" });
     setShowForm(false);
   }
 
@@ -132,13 +132,17 @@ export default function App() {
   };
 
   if (showUserSelect) return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ ...s.card, textAlign: "center", padding: "2rem", minWidth: "260px" }}>
-        <div style={{ fontSize: "20px", fontWeight: "700", color: "#222", marginBottom: "0.5rem" }}>🎾 Tennis Bankroll</div>
-        <div style={{ color: "#999", fontSize: "14px", marginBottom: "1.5rem" }}>Qui es-tu ?</div>
-        {["Valentin", "Steven"].map(u => (
-          <button key={u} onClick={() => selectUser(u)} style={{ ...s.btnPrimary, display: "block", width: "100%", marginBottom: "0.75rem" }}>{u}</button>
-        ))}
+    <div style={{ minHeight: "100vh", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        <div style={{ fontSize: "32px", fontWeight: "900", color: "#fff", letterSpacing: "2px", marginBottom: "0.25rem" }}>🎾 TENNIS BANKROLL</div>
+        <div style={{ fontSize: "18px", fontWeight: "700", color: "#2563eb", letterSpacing: "4px", marginBottom: "0.5rem" }}>MÉTHODE. PATIENCE. PROFIT.</div>
+        <div style={{ fontSize: "13px", color: "#555", marginBottom: "3rem", letterSpacing: "1px" }}>MAX 6% PAR JOUR • ACES ATP UNIQUEMENT</div>
+        <div style={{ background: "#fff", borderRadius: "16px", padding: "2rem", minWidth: "260px" }}>
+          <div style={{ color: "#999", fontSize: "14px", marginBottom: "1.5rem" }}>Qui es-tu ?</div>
+          {["Valentin", "Steven"].map(u => (
+            <button key={u} onClick={() => selectUser(u)} style={{ ...s.btnPrimary, display: "block", width: "100%", marginBottom: "0.75rem", fontSize: "16px", padding: "14px" }}>{u}</button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -185,7 +189,7 @@ export default function App() {
       {showForm && (
         <div style={s.card}>
           <div style={{ fontSize: "15px", fontWeight: "700", color: "#222", marginBottom: "1rem" }}>Nouveau pari</div>
-          {[["Match", "match", "text"], ["Pari", "pari", "text"], ["Cote", "cote", "number"], ["Mise (€)", "mise", "number"], ["Jour", "jour", "text"], ["Tournoi", "tournoi", "text"]].map(([label, key, type]) => (
+          {[["Match", "match", "text"], ["Pari", "pari", "text"], ["Cote", "cote", "number"], ["Mise (€)", "mise", "number"], ["Jour", "jour", "text"], ["Tournoi", "tournoi", "text"], ["Conseil max (%)", "conseil_pct", "number"]].map(([label, key, type]) => (
             <div key={key}>
               <div style={s.label}>{label}</div>
               <input type={type} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={s.input} />
@@ -218,13 +222,18 @@ export default function App() {
                 <div key={b.id} style={s.card}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "12px", color: "#999", marginBottom: "2px" }}>{b.match_name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
+                        <div style={{ fontSize: "12px", color: "#999" }}>{b.match_name}</div>
+                        {b.conseil_pct && (
+                          <span style={{ padding: "2px 7px", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "20px", fontSize: "10px", fontWeight: "700", color: "#ea580c", letterSpacing: "0.5px" }}>MAX {b.conseil_pct}%</span>
+                        )}
+                      </div>
                       <div style={{ fontSize: "14px", fontWeight: "600", color: "#222" }}>{b.pari}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
                         <div style={{ fontSize: "12px", color: "#666" }}>@{b.cote} • {b.tournoi}</div>
                         {editingMise === b.id ? (
                           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <input type="number" value={newMise} onChange={e => setNewMise(e.target.value)} style={{ width: "70px", padding: "3px 6px", border: "1px solid #2563eb", borderRadius: "6px", fontSize: "13px", color: "#222", background: "#fff", background: "#fff" }} placeholder="€" autoFocus />
+                            <input type="number" value={newMise} onChange={e => setNewMise(e.target.value)} style={{ width: "70px", padding: "3px 6px", border: "1px solid #2563eb", borderRadius: "6px", fontSize: "13px", color: "#222", background: "#fff" }} placeholder="€" autoFocus />
                             <button onClick={() => saveMise(b.id)} style={{ ...s.btnGreen, padding: "3px 8px" }}>✓</button>
                             <button onClick={() => setEditingMise(null)} style={{ ...s.btnGray, padding: "3px 8px" }}>✗</button>
                           </div>
