@@ -224,7 +224,7 @@ export default function App() {
                         <div style={{ fontSize: "12px", color: "#666" }}>@{b.cote} • {b.tournoi}</div>
                         {editingMise === b.id ? (
                           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <input type="number" value={newMise} onChange={e => setNewMise(e.target.value)} style={{ width: "70px", padding: "3px 6px", border: "1px solid #2563eb", borderRadius: "6px", fontSize: "13px", color: "#222", background: "#fff" }} placeholder="€" autoFocus />
+                            <input type="number" value={newMise} onChange={e => setNewMise(e.target.value)} style={{ width: "70px", padding: "3px 6px", border: "1px solid #2563eb", borderRadius: "6px", fontSize: "13px", color: "#222", background: "#fff", background: "#fff" }} placeholder="€" autoFocus />
                             <button onClick={() => saveMise(b.id)} style={{ ...s.btnGreen, padding: "3px 8px" }}>✓</button>
                             <button onClick={() => setEditingMise(null)} style={{ ...s.btnGray, padding: "3px 8px" }}>✗</button>
                           </div>
