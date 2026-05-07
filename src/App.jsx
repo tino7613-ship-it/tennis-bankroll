@@ -1,17 +1,12 @@
 import { useState, useEffect } from "react";
 
 const API = "/api/bets";
+const API_BR = "/api/bankroll";
 
 function pnl(b) {
   if (b.result === "win") return Math.round((b.cote - 1) * b.mise * 100) / 100;
   if (b.result === "loss") return -b.mise;
   return 0;
-}
-
-function getBankroll(bets) {
-  let br = 100;
-  [...bets].reverse().forEach(b => { br = Math.round((br + pnl(b)) * 100) / 100; });
-  return br;
 }
 
 function getStats(bets) {
@@ -29,22 +24,43 @@ export default function App() {
   const [tab, setTab] = useState("all");
   const [user, setUser] = useState(() => localStorage.getItem("tb_user") || "");
   const [showUserSelect, setShowUserSelect] = useState(false);
+  const [startingBankroll, setStartingBankroll] = useState(100);
+  const [showBankrollEdit, setShowBankrollEdit] = useState(false);
+  const [newBankroll, setNewBankroll] = useState("");
   const [form, setForm] = useState({ match: "", pari: "", cote: "", mise: "", jour: "", tournoi: "Rome 2026" });
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     if (!user) { setShowUserSelect(true); return; }
-    fetchBets();
+    fetchAll();
   }, [user]);
 
-  async function fetchBets() {
+  async function fetchAll() {
     setLoading(true);
     try {
-      const res = await fetch(API);
-      const data = await res.json();
-      setBets(data.map(b => ({ ...b, mise: parseFloat(b.mise), cote: parseFloat(b.cote) })));
+      const [betsRes, brRes] = await Promise.all([
+        fetch(API),
+        fetch(`${API_BR}?user=${user}`)
+      ]);
+      const betsData = await betsRes.json();
+      const brData = await brRes.json();
+      setBets(betsData.map(b => ({ ...b, mise: parseFloat(b.mise), cote: parseFloat(b.cote) })));
+      setStartingBankroll(parseFloat(brData.starting_amount) || 100);
     } catch (e) { console.error(e); }
     setLoading(false);
+  }
+
+  async function saveBankroll() {
+    const amount = parseFloat(newBankroll);
+    if (!amount || amount <= 0) return;
+    await fetch(API_BR, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user, starting_amount: amount })
+    });
+    setStartingBankroll(amount);
+    setShowBankrollEdit(false);
+    setNewBankroll("");
   }
 
   async function addBet() {
@@ -70,8 +86,6 @@ export default function App() {
     setBets(prev => prev.map(b => b.id === id ? { ...updated, mise: parseFloat(updated.mise), cote: parseFloat(updated.cote) } : b));
   }
 
-  async function resetResult(id) { await setResult(id, "pending"); }
-
   async function deleteBet(id) {
     await fetch(API, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     setBets(prev => prev.filter(b => b.id !== id));
@@ -86,14 +100,14 @@ export default function App() {
   const myBets = bets.filter(b => b.user_name === user);
   const filteredBets = tab === "all" ? myBets : myBets.filter(b => b.result === tab);
   const stats = getStats(myBets);
-  const bankroll = getBankroll(myBets);
+  const bankroll = Math.round((startingBankroll + stats.gain) * 100) / 100;
   const jours = [...new Set(myBets.map(b => b.jour))].filter(Boolean);
 
   const s = {
     page: { minHeight: "100vh", background: "#f5f5f5", fontFamily: "system-ui, sans-serif", maxWidth: "480px", margin: "0 auto", padding: "1rem" },
     card: { background: "#fff", borderRadius: "12px", padding: "1rem", marginBottom: "1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
-    label: { fontSize: "11px", color: "#999", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "2px" },
-    input: { width: "100%", background: "#f9f9f9", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "10px", color: "#222", fontSize: "14px", boxSizing: "border-box", marginBottom: "0.5rem" },
+    label: { fontSize: "11px", color: "#999", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "4px" },
+    input: { width: "100%", background: "#f9f9f9", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "10px", color: "#222", fontSize: "14px", boxSizing: "border-box", marginBottom: "0.75rem" },
     btnPrimary: { padding: "10px 20px", background: "#2563eb", border: "none", borderRadius: "8px", color: "#fff", cursor: "pointer", fontSize: "14px", fontWeight: "600" },
     btnSecondary: { padding: "10px 16px", background: "#f0f0f0", border: "none", borderRadius: "8px", color: "#666", cursor: "pointer", fontSize: "14px" },
     btnGreen: { padding: "5px 12px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: "6px", color: "#16a34a", cursor: "pointer", fontSize: "12px", fontWeight: "600" },
@@ -121,11 +135,14 @@ export default function App() {
     <div style={s.page}>
 
       {/* Header */}
-      <div style={{ ...s.card, background: "#2563eb", color: "#fff" }}>
+      <div style={{ ...s.card, background: "#2563eb", color: "#fff", marginBottom: "1rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: "12px", opacity: 0.8, letterSpacing: "1px" }}>TENNIS BANKROLL</div>
-            <div style={{ fontSize: "28px", fontWeight: "800" }}>{bankroll.toFixed(2)}€</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ fontSize: "28px", fontWeight: "800" }}>{bankroll.toFixed(2)}€</div>
+              <button onClick={() => { setNewBankroll(startingBankroll); setShowBankrollEdit(true); }} style={{ padding: "3px 8px", background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", borderRadius: "6px", color: "#fff", cursor: "pointer", fontSize: "11px" }}>✏️ Modifier</button>
+            </div>
             <div style={{ fontSize: "13px", opacity: 0.9 }}>{stats.gain >= 0 ? "+" : ""}{stats.gain.toFixed(2)}€ • ROI {stats.roi}% • {stats.won}/{stats.done} gagnés</div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -135,17 +152,30 @@ export default function App() {
         </div>
       </div>
 
+      {/* Edit bankroll */}
+      {showBankrollEdit && (
+        <div style={s.card}>
+          <div style={{ fontSize: "15px", fontWeight: "700", color: "#222", marginBottom: "1rem" }}>💰 Modifier la bankroll de départ</div>
+          <div style={s.label}>Montant (€)</div>
+          <input type="number" value={newBankroll} onChange={e => setNewBankroll(e.target.value)} style={s.input} placeholder="100" />
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={saveBankroll} style={s.btnPrimary}>Sauvegarder</button>
+            <button onClick={() => setShowBankrollEdit(false)} style={s.btnSecondary}>Annuler</button>
+          </div>
+        </div>
+      )}
+
       {/* Formulaire */}
       {showForm && (
         <div style={s.card}>
-          <div style={{ fontSize: "16px", fontWeight: "700", color: "#222", marginBottom: "1rem" }}>Nouveau pari</div>
-          {[["Match (ex: Zverev vs Alcaraz)", "match"], ["Pari (ex: Aces Zverev +6.5)", "pari"], ["Cote", "cote"], ["Mise (€)", "mise"], ["Jour (ex: Jeudi 08/05)", "jour"], ["Tournoi", "tournoi"]].map(([label, key]) => (
+          <div style={{ fontSize: "15px", fontWeight: "700", color: "#222", marginBottom: "1rem" }}>Nouveau pari</div>
+          {[["Match (ex: Zverev vs Alcaraz)", "match", "text"], ["Pari (ex: Aces Zverev +6.5)", "pari", "text"], ["Cote", "cote", "number"], ["Mise (€)", "mise", "number"], ["Jour (ex: Jeudi 08/05)", "jour", "text"], ["Tournoi", "tournoi", "text"]].map(([label, key, type]) => (
             <div key={key}>
               <div style={s.label}>{label}</div>
-              <input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={s.input} />
+              <input type={type} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={s.input} />
             </div>
           ))}
-          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             <button onClick={addBet} style={s.btnPrimary}>Ajouter</button>
             <button onClick={() => setShowForm(false)} style={s.btnSecondary}>Annuler</button>
           </div>
