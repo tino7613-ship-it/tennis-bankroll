@@ -29,7 +29,6 @@ export default function App() {
   const [tab, setTab] = useState("all");
   const [user, setUser] = useState(() => localStorage.getItem("tb_user") || "");
   const [showUserSelect, setShowUserSelect] = useState(false);
-
   const [form, setForm] = useState({ match: "", pari: "", cote: "", mise: "", jour: "", tournoi: "Rome 2026" });
   const [showForm, setShowForm] = useState(false);
 
@@ -71,16 +70,10 @@ export default function App() {
     setBets(prev => prev.map(b => b.id === id ? { ...updated, mise: parseFloat(updated.mise), cote: parseFloat(updated.cote) } : b));
   }
 
-  async function resetResult(id) {
-    await setResult(id, "pending");
-  }
+  async function resetResult(id) { await setResult(id, "pending"); }
 
   async function deleteBet(id) {
-    await fetch(API, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id })
-    });
+    await fetch(API, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     setBets(prev => prev.filter(b => b.id !== id));
   }
 
@@ -96,51 +89,65 @@ export default function App() {
   const bankroll = getBankroll(myBets);
   const jours = [...new Set(myBets.map(b => b.jour))].filter(Boolean);
 
+  const s = {
+    page: { minHeight: "100vh", background: "#f5f5f5", fontFamily: "system-ui, sans-serif", maxWidth: "480px", margin: "0 auto", padding: "1rem" },
+    card: { background: "#fff", borderRadius: "12px", padding: "1rem", marginBottom: "1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
+    label: { fontSize: "11px", color: "#999", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "2px" },
+    input: { width: "100%", background: "#f9f9f9", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "10px", color: "#222", fontSize: "14px", boxSizing: "border-box", marginBottom: "0.5rem" },
+    btnPrimary: { padding: "10px 20px", background: "#2563eb", border: "none", borderRadius: "8px", color: "#fff", cursor: "pointer", fontSize: "14px", fontWeight: "600" },
+    btnSecondary: { padding: "10px 16px", background: "#f0f0f0", border: "none", borderRadius: "8px", color: "#666", cursor: "pointer", fontSize: "14px" },
+    btnGreen: { padding: "5px 12px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: "6px", color: "#16a34a", cursor: "pointer", fontSize: "12px", fontWeight: "600" },
+    btnRed: { padding: "5px 12px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "6px", color: "#dc2626", cursor: "pointer", fontSize: "12px", fontWeight: "600" },
+    btnGray: { padding: "5px 12px", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "6px", color: "#6b7280", cursor: "pointer", fontSize: "12px" },
+  };
+
   if (showUserSelect) return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "#111", border: "1px solid #222", borderRadius: "12px", padding: "2rem", textAlign: "center" }}>
-        <div style={{ color: "#e8e8f0", fontSize: "18px", marginBottom: "1.5rem" }}>Qui es-tu ?</div>
+    <div style={{ minHeight: "100vh", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ ...s.card, textAlign: "center", padding: "2rem", minWidth: "260px" }}>
+        <div style={{ fontSize: "20px", fontWeight: "700", color: "#222", marginBottom: "0.5rem" }}>🎾 Tennis Bankroll</div>
+        <div style={{ color: "#999", fontSize: "14px", marginBottom: "1.5rem" }}>Qui es-tu ?</div>
         {["Valentin", "Ami"].map(u => (
-          <button key={u} onClick={() => selectUser(u)} style={{ display: "block", width: "100%", marginBottom: "0.75rem", padding: "12px 24px", background: "#1a1a2e", border: "1px solid #333", borderRadius: "8px", color: "#e8e8f0", fontSize: "16px", cursor: "pointer" }}>{u}</button>
+          <button key={u} onClick={() => selectUser(u)} style={{ ...s.btnPrimary, display: "block", width: "100%", marginBottom: "0.75rem" }}>{u}</button>
         ))}
       </div>
     </div>
   );
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", color: "#e8e8f0" }}>Chargement...</div>
+    <div style={{ minHeight: "100vh", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center", color: "#666" }}>Chargement...</div>
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#e8e8f0", fontFamily: "system-ui, sans-serif", maxWidth: "480px", margin: "0 auto", padding: "1rem" }}>
-      
+    <div style={s.page}>
+
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-        <div>
-          <div style={{ fontSize: "11px", color: "#555", letterSpacing: "2px" }}>TENNIS BANKROLL</div>
-          <div style={{ fontSize: "22px", fontWeight: "700", color: "#e8e8f0" }}>{bankroll.toFixed(2)}€</div>
-          <div style={{ fontSize: "11px", color: stats.gain >= 0 ? "#00ff88" : "#ff4466" }}>{stats.gain >= 0 ? "+" : ""}{stats.gain.toFixed(2)}€ • ROI {stats.roi}%</div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "11px", color: "#555", cursor: "pointer" }} onClick={() => setShowUserSelect(true)}>{user} ↓</div>
-          <div style={{ fontSize: "11px", color: "#555" }}>{stats.won}/{stats.done} gagnés</div>
-          <button onClick={() => setShowForm(!showForm)} style={{ marginTop: "0.5rem", padding: "8px 16px", background: "#1a1a2e", border: "1px solid #333", borderRadius: "6px", color: "#e8e8f0", cursor: "pointer", fontSize: "13px" }}>+ Pari</button>
+      <div style={{ ...s.card, background: "#2563eb", color: "#fff" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "12px", opacity: 0.8, letterSpacing: "1px" }}>TENNIS BANKROLL</div>
+            <div style={{ fontSize: "28px", fontWeight: "800" }}>{bankroll.toFixed(2)}€</div>
+            <div style={{ fontSize: "13px", opacity: 0.9 }}>{stats.gain >= 0 ? "+" : ""}{stats.gain.toFixed(2)}€ • ROI {stats.roi}% • {stats.won}/{stats.done} gagnés</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "13px", opacity: 0.8, cursor: "pointer", marginBottom: "0.5rem" }} onClick={() => setShowUserSelect(true)}>{user} ↓</div>
+            <button onClick={() => setShowForm(!showForm)} style={{ padding: "8px 16px", background: "#fff", border: "none", borderRadius: "8px", color: "#2563eb", cursor: "pointer", fontSize: "14px", fontWeight: "700" }}>+ Pari</button>
+          </div>
         </div>
       </div>
 
       {/* Formulaire */}
       {showForm && (
-        <div style={{ background: "#111", border: "1px solid #222", borderRadius: "10px", padding: "1rem", marginBottom: "1rem" }}>
-          {[["Match", "match"], ["Pari", "pari"], ["Cote", "cote"], ["Mise (€)", "mise"], ["Jour", "jour"], ["Tournoi", "tournoi"]].map(([label, key]) => (
-            <div key={key} style={{ marginBottom: "0.5rem" }}>
-              <div style={{ fontSize: "11px", color: "#555", marginBottom: "2px" }}>{label}</div>
-              <input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                style={{ width: "100%", background: "#0a0a0a", border: "1px solid #222", borderRadius: "6px", padding: "8px", color: "#e8e8f0", fontSize: "13px", boxSizing: "border-box" }} />
+        <div style={s.card}>
+          <div style={{ fontSize: "16px", fontWeight: "700", color: "#222", marginBottom: "1rem" }}>Nouveau pari</div>
+          {[["Match (ex: Zverev vs Alcaraz)", "match"], ["Pari (ex: Aces Zverev +6.5)", "pari"], ["Cote", "cote"], ["Mise (€)", "mise"], ["Jour (ex: Jeudi 08/05)", "jour"], ["Tournoi", "tournoi"]].map(([label, key]) => (
+            <div key={key}>
+              <div style={s.label}>{label}</div>
+              <input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={s.input} />
             </div>
           ))}
-          <div style={{ display: "flex", gap: "8px", marginTop: "0.75rem" }}>
-            <button onClick={addBet} style={{ flex: 1, padding: "10px", background: "#1a1a2e", border: "1px solid #333", borderRadius: "6px", color: "#e8e8f0", cursor: "pointer" }}>Ajouter</button>
-            <button onClick={() => setShowForm(false)} style={{ padding: "10px 16px", background: "transparent", border: "1px solid #222", borderRadius: "6px", color: "#555", cursor: "pointer" }}>Annuler</button>
+          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
+            <button onClick={addBet} style={s.btnPrimary}>Ajouter</button>
+            <button onClick={() => setShowForm(false)} style={s.btnSecondary}>Annuler</button>
           </div>
         </div>
       )}
@@ -148,46 +155,45 @@ export default function App() {
       {/* Filtres */}
       <div style={{ display: "flex", gap: "6px", marginBottom: "1rem", overflowX: "auto" }}>
         {[["all", "Tous"], ["pending", "En attente"], ["win", "Gagnés"], ["loss", "Perdus"]].map(([val, label]) => (
-          <button key={val} onClick={() => setTab(val)} style={{ padding: "6px 12px", background: tab === val ? "#1a1a2e" : "transparent", border: `1px solid ${tab === val ? "#333" : "#1a1a1a"}`, borderRadius: "20px", color: tab === val ? "#e8e8f0" : "#555", cursor: "pointer", fontSize: "12px", whiteSpace: "nowrap" }}>{label}</button>
+          <button key={val} onClick={() => setTab(val)} style={{ padding: "7px 14px", background: tab === val ? "#2563eb" : "#fff", border: "1px solid " + (tab === val ? "#2563eb" : "#e0e0e0"), borderRadius: "20px", color: tab === val ? "#fff" : "#666", cursor: "pointer", fontSize: "13px", fontWeight: tab === val ? "600" : "400", whiteSpace: "nowrap" }}>{label}</button>
         ))}
       </div>
 
-      {/* Liste des paris */}
+      {/* Paris */}
       {jours.map(jour => {
         const betsJour = filteredBets.filter(b => b.jour === jour);
         if (betsJour.length === 0) return null;
         return (
-          <div key={jour} style={{ marginBottom: "1rem" }}>
-            <div style={{ fontSize: "11px", color: "#555", letterSpacing: "1px", marginBottom: "0.5rem" }}>{jour}</div>
+          <div key={jour}>
+            <div style={{ fontSize: "12px", color: "#999", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.5rem", paddingLeft: "4px" }}>{jour}</div>
             {betsJour.map(b => {
               const p = pnl(b);
               return (
-                <div key={b.id} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "10px 12px", marginBottom: "6px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div style={{ flex: 1, minWidth: "150px" }}>
-                      <div style={{ fontSize: "12px", color: "#888", marginBottom: "2px" }}>{b.match_name}</div>
-                      <div style={{ fontSize: "13px", color: "#e8e8f0" }}>{b.pari}</div>
+                <div key={b.id} style={s.card}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "12px", color: "#999", marginBottom: "2px" }}>{b.match_name}</div>
+                      <div style={{ fontSize: "14px", fontWeight: "600", color: "#222" }}>{b.pari}</div>
+                      <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>@{b.cote} • {b.mise.toFixed(2)}€ • {b.tournoi}</div>
                     </div>
-                    <div style={{ fontSize: "13px", color: "#555", minWidth: "40px" }}>@{b.cote}</div>
-                    <div style={{ fontSize: "13px", color: "#888", minWidth: "50px" }}>{b.mise.toFixed(2)}€</div>
-                    <div style={{ minWidth: "80px" }}>
-                      {b.result === "pending" ? <span style={{ fontSize: "11px", color: "#ffaa00", letterSpacing: "1px" }}>EN ATTENTE</span>
-                        : b.result === "win" ? <span style={{ fontSize: "11px", color: "#00ff88", letterSpacing: "1px" }}>✓ GAGNÉ</span>
-                        : <span style={{ fontSize: "11px", color: "#ff4466", letterSpacing: "1px" }}>✗ PERDU</span>}
-                    </div>
-                    <div style={{ minWidth: "60px", fontSize: "14px", fontWeight: "700", color: b.result === "pending" ? "#333" : p >= 0 ? "#00ff88" : "#ff4466" }}>
-                      {b.result !== "pending" ? `${p >= 0 ? "+" : ""}${p.toFixed(2)}€` : "-"}
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "15px", fontWeight: "700", color: b.result === "pending" ? "#999" : p >= 0 ? "#16a34a" : "#dc2626" }}>
+                        {b.result !== "pending" ? `${p >= 0 ? "+" : ""}${p.toFixed(2)}€` : "-"}
+                      </div>
+                      <div style={{ fontSize: "11px", color: b.result === "pending" ? "#f59e0b" : b.result === "win" ? "#16a34a" : "#dc2626", fontWeight: "600" }}>
+                        {b.result === "pending" ? "EN ATTENTE" : b.result === "win" ? "✓ GAGNÉ" : "✗ PERDU"}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+                  <div style={{ display: "flex", gap: "6px" }}>
                     {b.result === "pending" ? (
                       <>
-                        <button onClick={() => setResult(b.id, "win")} style={{ padding: "4px 12px", background: "#00ff8822", border: "1px solid #00ff88", borderRadius: "6px", color: "#00ff88", cursor: "pointer", fontSize: "12px" }}>✓ Gagné</button>
-                        <button onClick={() => setResult(b.id, "loss")} style={{ padding: "4px 12px", background: "#ff446622", border: "1px solid #ff4466", borderRadius: "6px", color: "#ff4466", cursor: "pointer", fontSize: "12px" }}>✗ Perdu</button>
-                        <button onClick={() => deleteBet(b.id)} style={{ padding: "4px 12px", background: "transparent", border: "1px solid #222", borderRadius: "6px", color: "#444", cursor: "pointer", fontSize: "12px" }}>Suppr</button>
+                        <button onClick={() => setResult(b.id, "win")} style={s.btnGreen}>✓ Gagné</button>
+                        <button onClick={() => setResult(b.id, "loss")} style={s.btnRed}>✗ Perdu</button>
+                        <button onClick={() => deleteBet(b.id)} style={s.btnGray}>Suppr</button>
                       </>
                     ) : (
-                      <button onClick={() => resetResult(b.id)} style={{ padding: "4px 12px", background: "#33333322", border: "1px solid #555", borderRadius: "6px", color: "#555", cursor: "pointer", fontSize: "12px" }}>Réinitialiser</button>
+                      <button onClick={() => resetResult(b.id)} style={s.btnGray}>Réinitialiser</button>
                     )}
                   </div>
                 </div>
@@ -198,10 +204,10 @@ export default function App() {
       })}
 
       {filteredBets.length === 0 && (
-        <div style={{ padding: "2rem", textAlign: "center", color: "#333", fontSize: "13px" }}>Aucun pari pour l'instant</div>
+        <div style={{ ...s.card, textAlign: "center", color: "#999", padding: "2rem" }}>Aucun pari pour l'instant</div>
       )}
 
-      <div style={{ textAlign: "center", marginTop: "1.5rem", fontSize: "10px", color: "#222", letterSpacing: "2px" }}>
+      <div style={{ textAlign: "center", fontSize: "11px", color: "#ccc", letterSpacing: "1px", marginTop: "1rem" }}>
         TENNIS BANKROLL SYSTEM — ROME 2026
       </div>
     </div>
