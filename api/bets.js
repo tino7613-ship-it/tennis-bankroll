@@ -10,7 +10,6 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
@@ -27,11 +26,12 @@ export default async function handler(req, res) {
       return res.json(result.rows[0]);
     }
     if (req.method === 'PUT') {
-      const { id, result } = req.body;
-      const r = await pool.query(
-        'UPDATE bets SET result=$1 WHERE id=$2 RETURNING *',
-        [result, id]
-      );
+      const { id, result, mise } = req.body;
+      if (mise !== undefined) {
+        const r = await pool.query('UPDATE bets SET mise=$1 WHERE id=$2 RETURNING *', [mise, id]);
+        return res.json(r.rows[0]);
+      }
+      const r = await pool.query('UPDATE bets SET result=$1 WHERE id=$2 RETURNING *', [result, id]);
       return res.json(r.rows[0]);
     }
     if (req.method === 'DELETE') {

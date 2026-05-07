@@ -29,6 +29,8 @@ export default function App() {
   const [newBankroll, setNewBankroll] = useState("");
   const [form, setForm] = useState({ match: "", pari: "", cote: "", mise: "", jour: "", tournoi: "Rome 2026" });
   const [showForm, setShowForm] = useState(false);
+  const [editingMise, setEditingMise] = useState(null);
+  const [newMise, setNewMise] = useState("");
 
   useEffect(() => {
     if (!user) { setShowUserSelect(true); return; }
@@ -74,6 +76,20 @@ export default function App() {
     setBets(prev => [{ ...newBet, mise: parseFloat(newBet.mise), cote: parseFloat(newBet.cote) }, ...prev]);
     setForm({ match: "", pari: "", cote: "", mise: "", jour: "", tournoi: "Rome 2026" });
     setShowForm(false);
+  }
+
+  async function saveMise(id) {
+    const mise = parseFloat(newMise);
+    if (!mise || mise <= 0) return;
+    const res = await fetch(API, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, mise })
+    });
+    const updated = await res.json();
+    setBets(prev => prev.map(b => b.id === id ? { ...updated, mise: parseFloat(updated.mise), cote: parseFloat(updated.cote) } : b));
+    setEditingMise(null);
+    setNewMise("");
   }
 
   async function setResult(id, result) {
@@ -169,7 +185,7 @@ export default function App() {
       {showForm && (
         <div style={s.card}>
           <div style={{ fontSize: "15px", fontWeight: "700", color: "#222", marginBottom: "1rem" }}>Nouveau pari</div>
-          {[["Match (ex: Zverev vs Alcaraz)", "match", "text"], ["Pari (ex: Aces Zverev +6.5)", "pari", "text"], ["Cote", "cote", "number"], ["Mise (€)", "mise", "number"], ["Jour (ex: Jeudi 08/05)", "jour", "text"], ["Tournoi", "tournoi", "text"]].map(([label, key, type]) => (
+          {[["Match", "match", "text"], ["Pari", "pari", "text"], ["Cote", "cote", "number"], ["Mise (€)", "mise", "number"], ["Jour", "jour", "text"], ["Tournoi", "tournoi", "text"]].map(([label, key, type]) => (
             <div key={key}>
               <div style={s.label}>{label}</div>
               <input type={type} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={s.input} />
@@ -204,7 +220,23 @@ export default function App() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: "12px", color: "#999", marginBottom: "2px" }}>{b.match_name}</div>
                       <div style={{ fontSize: "14px", fontWeight: "600", color: "#222" }}>{b.pari}</div>
-                      <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>@{b.cote} • {b.mise.toFixed(2)}€ • {b.tournoi}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+                        <div style={{ fontSize: "12px", color: "#666" }}>@{b.cote} • {b.tournoi}</div>
+                        {editingMise === b.id ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <input type="number" value={newMise} onChange={e => setNewMise(e.target.value)} style={{ width: "70px", padding: "3px 6px", border: "1px solid #2563eb", borderRadius: "6px", fontSize: "13px", color: "#222" }} placeholder="€" autoFocus />
+                            <button onClick={() => saveMise(b.id)} style={{ ...s.btnGreen, padding: "3px 8px" }}>✓</button>
+                            <button onClick={() => setEditingMise(null)} style={{ ...s.btnGray, padding: "3px 8px" }}>✗</button>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span style={{ fontSize: "13px", fontWeight: "600", color: "#222" }}>{b.mise.toFixed(2)}€</span>
+                            {b.result === "pending" && (
+                              <button onClick={() => { setEditingMise(b.id); setNewMise(b.mise); }} style={{ padding: "2px 6px", background: "#f0f4ff", border: "1px solid #bcd0ff", borderRadius: "4px", color: "#2563eb", cursor: "pointer", fontSize: "11px" }}>✏️</button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: "15px", fontWeight: "700", color: b.result === "pending" ? "#999" : p >= 0 ? "#16a34a" : "#dc2626" }}>
@@ -223,7 +255,7 @@ export default function App() {
                         <button onClick={() => deleteBet(b.id)} style={s.btnGray}>Suppr</button>
                       </>
                     ) : (
-                      <button onClick={() => resetResult(b.id)} style={s.btnGray}>Réinitialiser</button>
+                      <button onClick={() => setResult(b.id, "pending")} style={s.btnGray}>Réinitialiser</button>
                     )}
                   </div>
                 </div>
