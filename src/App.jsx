@@ -132,10 +132,10 @@ export default function App() {
   };
 
   if (showUserSelect) return (
-    <div style={{ minHeight: "100vh", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center", padding: "2rem" }}>
         <div style={{ fontSize: "32px", fontWeight: "900", color: "#fff", letterSpacing: "2px", marginBottom: "0.25rem" }}>🎾 TENNIS BANKROLL</div>
-        <div style={{ fontSize: "18px", fontWeight: "700", color: "#2563eb", letterSpacing: "4px", marginBottom: "0.5rem" }}>MÉTHODE. PATIENCE. PROFIT.</div>
+        <div style={{ fontSize: "18px", fontWeight: "700", color: "#dc2626", letterSpacing: "4px", marginBottom: "0.5rem" }}>MÉTHODE. PATIENCE. PROFIT.</div>
         <div style={{ fontSize: "13px", color: "#555", marginBottom: "3rem", letterSpacing: "1px" }}>MAX 6% PAR JOUR • ACES ATP UNIQUEMENT</div>
         <div style={{ background: "#fff", borderRadius: "16px", padding: "2rem", minWidth: "260px" }}>
           <div style={{ color: "#999", fontSize: "14px", marginBottom: "1.5rem" }}>Qui es-tu ?</div>
