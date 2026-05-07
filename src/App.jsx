@@ -120,7 +120,7 @@ export default function App() {
       <div style={{ ...s.card, textAlign: "center", padding: "2rem", minWidth: "260px" }}>
         <div style={{ fontSize: "20px", fontWeight: "700", color: "#222", marginBottom: "0.5rem" }}>🎾 Tennis Bankroll</div>
         <div style={{ color: "#999", fontSize: "14px", marginBottom: "1.5rem" }}>Qui es-tu ?</div>
-        {["Valentin", "Ami"].map(u => (
+        {["Valentin", "Steven"].map(u => (
           <button key={u} onClick={() => selectUser(u)} style={{ ...s.btnPrimary, display: "block", width: "100%", marginBottom: "0.75rem" }}>{u}</button>
         ))}
       </div>
