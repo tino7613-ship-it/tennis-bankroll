@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "pg": "^8.20.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "vercel": "^53.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
