@@ -21,7 +21,7 @@ function getStats(bets) {
 export default function App() {
   const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("all");
+  const [page, setPage] = useState("home");
   const [user, setUser] = useState(() => localStorage.getItem("tb_user") || "");
   const [showUserSelect, setShowUserSelect] = useState(false);
   const [startingBankroll, setStartingBankroll] = useState(100);
@@ -114,10 +114,12 @@ export default function App() {
   }
 
   const myBets = bets.filter(b => b.user_name === user);
-  const filteredBets = tab === "all" ? myBets : myBets.filter(b => b.result === tab);
+  const pendingBets = myBets.filter(b => b.result === "pending");
+  const doneBets = myBets.filter(b => b.result !== "pending");
   const stats = getStats(myBets);
   const bankroll = Math.round((startingBankroll + stats.gain) * 100) / 100;
-  const jours = [...new Set(myBets.map(b => b.jour))].filter(Boolean);
+  const pendingJours = [...new Set(pendingBets.map(b => b.jour))].filter(Boolean);
+  const doneJours = [...new Set(doneBets.map(b => b.jour))].filter(Boolean);
 
   const s = {
     page: { minHeight: "100vh", background: "#f5f5f5", fontFamily: "system-ui, sans-serif", maxWidth: "480px", margin: "0 auto", padding: "1rem" },
@@ -132,12 +134,12 @@ export default function App() {
   };
 
   if (showUserSelect) return (
-    <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ minHeight: "100vh", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center", padding: "2rem" }}>
-        <div style={{ fontSize: "32px", fontWeight: "900", color: "#fff", letterSpacing: "2px", marginBottom: "0.25rem" }}>🎾 TENNIS BANKROLL</div>
+        <div style={{ fontSize: "32px", fontWeight: "900", color: "#111", letterSpacing: "2px", marginBottom: "0.25rem" }}>🎾 TENNIS BANKROLL</div>
         <div style={{ fontSize: "18px", fontWeight: "700", color: "#dc2626", letterSpacing: "4px", marginBottom: "0.5rem" }}>MÉTHODE. PATIENCE. PROFIT.</div>
-        <div style={{ fontSize: "13px", color: "#555", marginBottom: "3rem", letterSpacing: "1px" }}>MAX 6% PAR JOUR • ACES ATP UNIQUEMENT</div>
-        <div style={{ background: "#fff", borderRadius: "16px", padding: "2rem", minWidth: "260px" }}>
+        <div style={{ fontSize: "13px", color: "#aaa", marginBottom: "3rem", letterSpacing: "1px" }}>MAX 6% PAR JOUR • ACES ATP UNIQUEMENT</div>
+        <div style={{ background: "#f5f5f5", borderRadius: "16px", padding: "2rem", minWidth: "260px" }}>
           <div style={{ color: "#999", fontSize: "14px", marginBottom: "1.5rem" }}>Qui es-tu ?</div>
           {["Valentin", "Steven"].map(u => (
             <button key={u} onClick={() => selectUser(u)} style={{ ...s.btnPrimary, display: "block", width: "100%", marginBottom: "0.75rem", fontSize: "16px", padding: "14px" }}>{u}</button>
@@ -151,6 +153,63 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center", color: "#666" }}>Chargement...</div>
   );
 
+  const BetCard = ({ b, showActions = true }) => {
+    const p = pnl(b);
+    return (
+      <div style={s.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
+              <div style={{ fontSize: "12px", color: "#999" }}>{b.match_name}</div>
+              {b.conseil_pct && (
+                <span style={{ padding: "2px 7px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "20px", fontSize: "10px", fontWeight: "700", color: "#dc2626", letterSpacing: "0.5px" }}>MAX {b.conseil_pct}%</span>
+              )}
+            </div>
+            <div style={{ fontSize: "14px", fontWeight: "600", color: "#222" }}>{b.pari}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+              <div style={{ fontSize: "12px", color: "#666" }}>@{b.cote} • {b.tournoi}</div>
+              {editingMise === b.id ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <input type="number" value={newMise} onChange={e => setNewMise(e.target.value)} style={{ width: "70px", padding: "3px 6px", border: "1px solid #2563eb", borderRadius: "6px", fontSize: "13px", color: "#222", background: "#fff" }} placeholder="€" autoFocus />
+                  <button onClick={() => saveMise(b.id)} style={{ ...s.btnGreen, padding: "3px 8px" }}>✓</button>
+                  <button onClick={() => setEditingMise(null)} style={{ ...s.btnGray, padding: "3px 8px" }}>✗</button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "600", color: "#222" }}>{b.mise.toFixed(2)}€</span>
+                  {b.result === "pending" && (
+                    <button onClick={() => { setEditingMise(b.id); setNewMise(b.mise); }} style={{ padding: "2px 6px", background: "#f0f4ff", border: "1px solid #bcd0ff", borderRadius: "4px", color: "#2563eb", cursor: "pointer", fontSize: "11px" }}>✏️</button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "15px", fontWeight: "700", color: b.result === "pending" ? "#999" : p >= 0 ? "#16a34a" : "#dc2626" }}>
+              {b.result !== "pending" ? `${p >= 0 ? "+" : ""}${p.toFixed(2)}€` : "-"}
+            </div>
+            <div style={{ fontSize: "11px", color: b.result === "pending" ? "#f59e0b" : b.result === "win" ? "#16a34a" : "#dc2626", fontWeight: "600" }}>
+              {b.result === "pending" ? "EN ATTENTE" : b.result === "win" ? "✓ GAGNÉ" : "✗ PERDU"}
+            </div>
+          </div>
+        </div>
+        {showActions && (
+          <div style={{ display: "flex", gap: "6px" }}>
+            {b.result === "pending" ? (
+              <>
+                <button onClick={() => setResult(b.id, "win")} style={s.btnGreen}>✓ Gagné</button>
+                <button onClick={() => setResult(b.id, "loss")} style={s.btnRed}>✗ Perdu</button>
+                <button onClick={() => deleteBet(b.id)} style={s.btnGray}>Suppr</button>
+              </>
+            ) : (
+              <button onClick={() => setResult(b.id, "pending")} style={s.btnGray}>Réinitialiser</button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={s.page}>
 
@@ -161,7 +220,7 @@ export default function App() {
             <div style={{ fontSize: "12px", opacity: 0.8, letterSpacing: "1px" }}>TENNIS BANKROLL</div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{ fontSize: "28px", fontWeight: "800" }}>{bankroll.toFixed(2)}€</div>
-              <button onClick={() => { setNewBankroll(startingBankroll); setShowBankrollEdit(true); }} style={{ padding: "3px 8px", background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", borderRadius: "6px", color: "#fff", cursor: "pointer", fontSize: "11px" }}>✏️ Modifier</button>
+              <button onClick={() => { setNewBankroll(startingBankroll); setShowBankrollEdit(true); }} style={{ padding: "3px 8px", background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", borderRadius: "6px", color: "#fff", cursor: "pointer", fontSize: "11px" }}>✏️</button>
             </div>
             <div style={{ fontSize: "13px", opacity: 0.9 }}>{stats.gain >= 0 ? "+" : ""}{stats.gain.toFixed(2)}€ • ROI {stats.roi}% • {stats.won}/{stats.done} gagnés</div>
           </div>
@@ -170,6 +229,16 @@ export default function App() {
             <button onClick={() => setShowForm(!showForm)} style={{ padding: "8px 16px", background: "#fff", border: "none", borderRadius: "8px", color: "#2563eb", cursor: "pointer", fontSize: "14px", fontWeight: "700" }}>+ Pari</button>
           </div>
         </div>
+      </div>
+
+      {/* Nav */}
+      <div style={{ display: "flex", gap: "6px", marginBottom: "1rem" }}>
+        <button onClick={() => setPage("home")} style={{ flex: 1, padding: "10px", background: page === "home" ? "#2563eb" : "#fff", border: "1px solid " + (page === "home" ? "#2563eb" : "#e0e0e0"), borderRadius: "8px", color: page === "home" ? "#fff" : "#666", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+          En cours {pendingBets.length > 0 && `(${pendingBets.length})`}
+        </button>
+        <button onClick={() => setPage("history")} style={{ flex: 1, padding: "10px", background: page === "history" ? "#2563eb" : "#fff", border: "1px solid " + (page === "history" ? "#2563eb" : "#e0e0e0"), borderRadius: "8px", color: page === "history" ? "#fff" : "#666", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+          Historique {doneBets.length > 0 && `(${doneBets.length})`}
+        </button>
       </div>
 
       {/* Edit bankroll */}
@@ -202,80 +271,38 @@ export default function App() {
         </div>
       )}
 
-      {/* Filtres */}
-      <div style={{ display: "flex", gap: "6px", marginBottom: "1rem", overflowX: "auto" }}>
-        {[["all", "Tous"], ["pending", "En attente"], ["win", "Gagnés"], ["loss", "Perdus"]].map(([val, label]) => (
-          <button key={val} onClick={() => setTab(val)} style={{ padding: "7px 14px", background: tab === val ? "#2563eb" : "#fff", border: "1px solid " + (tab === val ? "#2563eb" : "#e0e0e0"), borderRadius: "20px", color: tab === val ? "#fff" : "#666", cursor: "pointer", fontSize: "13px", fontWeight: tab === val ? "600" : "400", whiteSpace: "nowrap" }}>{label}</button>
-        ))}
-      </div>
+      {/* PAGE HOME — EN COURS */}
+      {page === "home" && (
+        <>
+          {pendingBets.length === 0 && (
+            <div style={{ ...s.card, textAlign: "center", color: "#999", padding: "2rem" }}>
+              Aucun pari en cours
+            </div>
+          )}
+          {pendingJours.map(jour => (
+            <div key={jour}>
+              <div style={{ fontSize: "12px", color: "#999", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.5rem", paddingLeft: "4px" }}>{jour}</div>
+              {pendingBets.filter(b => b.jour === jour).map(b => <BetCard key={b.id} b={b} />)}
+            </div>
+          ))}
+        </>
+      )}
 
-      {/* Paris */}
-      {jours.map(jour => {
-        const betsJour = filteredBets.filter(b => b.jour === jour);
-        if (betsJour.length === 0) return null;
-        return (
-          <div key={jour}>
-            <div style={{ fontSize: "12px", color: "#999", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.5rem", paddingLeft: "4px" }}>{jour}</div>
-            {betsJour.map(b => {
-              const p = pnl(b);
-              return (
-                <div key={b.id} style={s.card}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
-                        <div style={{ fontSize: "12px", color: "#999" }}>{b.match_name}</div>
-                        {b.conseil_pct && (
-                          <span style={{ padding: "2px 7px", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "20px", fontSize: "10px", fontWeight: "700", color: "#ea580c", letterSpacing: "0.5px" }}>MAX {b.conseil_pct}%</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "#222" }}>{b.pari}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-                        <div style={{ fontSize: "12px", color: "#666" }}>@{b.cote} • {b.tournoi}</div>
-                        {editingMise === b.id ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <input type="number" value={newMise} onChange={e => setNewMise(e.target.value)} style={{ width: "70px", padding: "3px 6px", border: "1px solid #2563eb", borderRadius: "6px", fontSize: "13px", color: "#222", background: "#fff" }} placeholder="€" autoFocus />
-                            <button onClick={() => saveMise(b.id)} style={{ ...s.btnGreen, padding: "3px 8px" }}>✓</button>
-                            <button onClick={() => setEditingMise(null)} style={{ ...s.btnGray, padding: "3px 8px" }}>✗</button>
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <span style={{ fontSize: "13px", fontWeight: "600", color: "#222" }}>{b.mise.toFixed(2)}€</span>
-                            {b.result === "pending" && (
-                              <button onClick={() => { setEditingMise(b.id); setNewMise(b.mise); }} style={{ padding: "2px 6px", background: "#f0f4ff", border: "1px solid #bcd0ff", borderRadius: "4px", color: "#2563eb", cursor: "pointer", fontSize: "11px" }}>✏️</button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "15px", fontWeight: "700", color: b.result === "pending" ? "#999" : p >= 0 ? "#16a34a" : "#dc2626" }}>
-                        {b.result !== "pending" ? `${p >= 0 ? "+" : ""}${p.toFixed(2)}€` : "-"}
-                      </div>
-                      <div style={{ fontSize: "11px", color: b.result === "pending" ? "#f59e0b" : b.result === "win" ? "#16a34a" : "#dc2626", fontWeight: "600" }}>
-                        {b.result === "pending" ? "EN ATTENTE" : b.result === "win" ? "✓ GAGNÉ" : "✗ PERDU"}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    {b.result === "pending" ? (
-                      <>
-                        <button onClick={() => setResult(b.id, "win")} style={s.btnGreen}>✓ Gagné</button>
-                        <button onClick={() => setResult(b.id, "loss")} style={s.btnRed}>✗ Perdu</button>
-                        <button onClick={() => deleteBet(b.id)} style={s.btnGray}>Suppr</button>
-                      </>
-                    ) : (
-                      <button onClick={() => setResult(b.id, "pending")} style={s.btnGray}>Réinitialiser</button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
-
-      {filteredBets.length === 0 && (
-        <div style={{ ...s.card, textAlign: "center", color: "#999", padding: "2rem" }}>Aucun pari pour l'instant</div>
+      {/* PAGE HISTORIQUE */}
+      {page === "history" && (
+        <>
+          {doneBets.length === 0 && (
+            <div style={{ ...s.card, textAlign: "center", color: "#999", padding: "2rem" }}>
+              Aucun pari terminé
+            </div>
+          )}
+          {doneJours.map(jour => (
+            <div key={jour}>
+              <div style={{ fontSize: "12px", color: "#999", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.5rem", paddingLeft: "4px" }}>{jour}</div>
+              {doneBets.filter(b => b.jour === jour).map(b => <BetCard key={b.id} b={b} />)}
+            </div>
+          ))}
+        </>
       )}
 
       <div style={{ textAlign: "center", fontSize: "11px", color: "#ccc", letterSpacing: "1px", marginTop: "1rem" }}>
