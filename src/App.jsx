@@ -306,7 +306,7 @@ export default function App() {
       )}
 
       <div style={{ textAlign: "center", fontSize: "11px", color: "#ccc", letterSpacing: "1px", marginTop: "1rem" }}>
-        TENNIS BANKROLL SYSTEM — ROME 2026
+        TENNIS BANKROLL SYSTEM — ROLAND GARROS 2026
       </div>
     </div>
   );
